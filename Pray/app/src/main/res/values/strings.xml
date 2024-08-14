@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Pray</string>
+    <string name="lock_access_denied">The device has been blocked by its owner to protect both privacy and property.\n\nEnter the password to unlock.</string>
+    <string name="enter">ENTER</string>
+    <string name="title_activity_fullscreen">FullscreenActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+</resources>

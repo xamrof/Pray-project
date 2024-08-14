@@ -1,0 +1,8 @@
+# Desarrollador
+.vscode/
+
+# Dependencias
+node_modules/
+
+.env
+
