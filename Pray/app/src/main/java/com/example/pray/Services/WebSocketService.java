@@ -22,12 +22,13 @@ public class WebSocketService extends Service {
         super.onCreate();
         createNotificationChannel();
         startForeground(1, getNotification());
-
-        socketManager = new SocketManager(this);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
+
+        socketManager = new SocketManager(this);
+        new Thread(socketManager::run).start();
         //IF DETECT THAT THE DEVICE IS BLOCKED
         return START_STICKY;
     }

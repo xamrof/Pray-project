@@ -22,6 +22,8 @@ import android.widget.Toast;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Intent;
+
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.pray.R;
@@ -32,26 +34,18 @@ public class Lock extends AppCompatActivity {
     private Socket socket;
     private DevicePolicyManager devicePolicyManager;
     private ComponentName componentName;
+    private Boolean isBlockActive = false; //This variable is used to check if the device is blocked and use in DB
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.password_native_activity);
 
-       /* devicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
-        componentName = new ComponentName(this, MyAdmin.class);
-
-        if(!devicePolicyManager.isAdminActive(componentName)){
-            Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
-            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName);
-            intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "You need to activate Device admin");
-            startActivity(intent);
-        } */
-
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                              WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            isBlockActive = true;
             startLockTask();
         }
 
@@ -114,8 +108,9 @@ public class Lock extends AppCompatActivity {
                     String unlock = "unlock";
                     String key = passwordEditText.getText().toString().trim();
 
-                    if(unlock != null && unlock.equals(key)){
+                    if(unlock.equals(key)){
                         Toast.makeText(Lock.this, "Correct Password", Toast.LENGTH_SHORT).show();
+                        isBlockActive = false;
                         stopLockTask();
                     }else{
                         Toast.makeText(Lock.this, "Wrong Password", Toast.LENGTH_SHORT).show();
@@ -126,7 +121,14 @@ public class Lock extends AppCompatActivity {
             }
         });
 
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                Log.d("Lock", "backPressed");
+            }
+        };
 
+        getOnBackPressedDispatcher().addCallback(this, callback);
     }
 
     //ADD REST OF CODE
@@ -134,6 +136,14 @@ public class Lock extends AppCompatActivity {
     protected void onResume(){
         super.onResume();
         Log.d("Lock", "onResume");
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if(hasFocus && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP && isBlockActive){
+            startLockTask();
+        }
     }
 
     @Override
