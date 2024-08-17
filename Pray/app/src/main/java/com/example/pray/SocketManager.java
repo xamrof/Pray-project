@@ -1,9 +1,19 @@
 package com.example.pray;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.util.Log;
+
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+
+import com.example.pray.Services.BlockPhoneService;
 import com.example.pray.Services.TurnOffScreen;
+import com.example.pray.Workers.BlockWorker;
+
 import io.socket.client.Socket;
 import java.net.URISyntaxException;
 import io.socket.client.IO;
@@ -21,9 +31,13 @@ public class SocketManager {
     private static final String MESSAGE_HI = "Hi from android";
 
     private Socket socket;
+    private Context context;
 
     public SocketManager(Context context) {
+        this.context = context;
+    }
 
+    public void run(){
         try{
             IO.Options options = new IO.Options();
             options.transports = new String[]{"websocket"};
@@ -66,10 +80,30 @@ public class SocketManager {
     }
 
     private void blockPhone(Context context){
-        Intent intent = new Intent(context, Lock.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(intent);
+
+        Intent intent = new Intent(context, BlockPhoneService.class);
+        context.startService(intent);
+
+        /* Intent intent = new Intent();
+        intent.setAction("com.example.pray.OPEN_ACTIVITY");
+        context.sendBroadcast(intent); */
+
+
+      /* Intent intent = new Intent(context, BlockPhoneService.class);
+       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+       context.startService(intent); */
+
+
+       /* if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            context.startForegroundService(intent);
+        }else{
+            context.startService(intent);
+        } */
+
+      /*  OneTimeWorkRequest blockRequest = new OneTimeWorkRequest.Builder(BlockWorker.class).build();
+        WorkManager.getInstance(context).enqueue(blockRequest); */
     }
+
 
 
    public void disconnect(){

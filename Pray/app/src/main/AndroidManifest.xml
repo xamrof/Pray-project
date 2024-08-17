@@ -22,6 +22,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -35,23 +37,26 @@
         android:theme="@style/Theme.Pray"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
+        <activity
+            android:name=".block"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="false"
+            android:label="@string/title_activity_block"
+            android:theme="@style/Theme.Pray.Fullscreen" />
+
+        <service
+            android:name=".Services.BlockPhoneService"
+            android:enabled="true"
+            android:exported="true" />
         <service
             android:name=".Services.TurnOffScreen"
-            android:exported="false">
-        </service>
-        <service
-            android:name=".Services.SocketWorker"
-            android:enabled="true"
-            android:exported="true"
-            android:permission="android.permission.BIND_JOB_SERVICE"
-            android:foregroundServiceType="connectedDevice"
-            />
+            android:exported="false" />
         <service
             android:name=".Services.WebSocketService"
             android:enabled="true"
             android:exported="true"
-            android:foregroundServiceType="dataSync"
-            /> <!-- <service android:name=".Services.PrayLockService"/> -->
+            android:foregroundServiceType="dataSync" /> <!-- <service android:name=".Services.PrayLockService"/> -->
         <activity
             android:name=".Lock"
             android:exported="false" />
@@ -75,6 +80,14 @@
 
             <intent-filter>
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".MyBroadcastReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.pray.OPEN_ACTIVITY" />
             </intent-filter>
         </receiver>
     </application>
