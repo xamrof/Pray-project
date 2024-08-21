@@ -25,28 +25,38 @@ import android.content.Intent;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import com.example.pray.R;
+import com.example.pray.Workers.TurnOffScreenWorker;
+
+import java.util.concurrent.TimeUnit;
 
 import io.socket.client.Socket;
 
 public class Lock extends AppCompatActivity {
     private Socket socket;
     private DevicePolicyManager devicePolicyManager;
-    private ComponentName componentName;
+    private ComponentName adminComponent;
+    private Context context;
     private Boolean isBlockActive = false; //This variable is used to check if the device is blocked and use in DB
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        devicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+        adminComponent = new ComponentName(this, MyAdmin.class);
+
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.password_native_activity);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                              WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
             isBlockActive = true;
-            startLockTask();
+            startKioskMode();
         }
 
 
@@ -131,10 +141,16 @@ public class Lock extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, callback);
     }
 
+    //I NEED ADD WHAT HAPPEN WHEN THE USER IS UNLOCKED, MAYBE MAIN ACTIVITY
     //ADD REST OF CODE
     @Override
     protected void onResume(){
         super.onResume();
+        OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(TurnOffScreenWorker.class)
+                .setInitialDelay(10, TimeUnit.SECONDS)
+                .build();
+
+        WorkManager.getInstance(context).enqueue(workRequest);
         Log.d("Lock", "onResume");
     }
 
@@ -142,7 +158,7 @@ public class Lock extends AppCompatActivity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if(hasFocus && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP && isBlockActive){
-            startLockTask();
+            startKioskMode();
         }
     }
 
@@ -154,6 +170,21 @@ public class Lock extends AppCompatActivity {
         }else if(newConfig.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_YES){
             Toast.makeText(this, "Keyboard hidden", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void startKioskMode(){
+        startLockTask();
+       /* if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
+
+            devicePolicyManager.setLockTaskPackages(adminComponent, new String[]{getPackageName()});
+
+            if(devicePolicyManager.isLockTaskPermitted(getPackageName())){
+                startLockTask();
+          }else {
+                Log.e("Lock", "Permission not granted");
+            }
+
+        } */
     }
 
     @Override

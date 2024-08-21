@@ -22,7 +22,7 @@ import io.socket.client.IO;
 public class SocketManager {
 
     private static final String TAG = "SocketWorker";
-    private static final String SERVER_URL = "http://10.0.2.2:3000";
+    private static final String SERVER_URL = "http://192.168.0.108:3000";
     private static final String EVENT_CONNECT = Socket.EVENT_CONNECT;
     private static final String EVENT_CONNECT_ERROR = "connect_error";
     private static final String EVENT_MESSAGE_SERVER = "messageServer";
@@ -82,7 +82,15 @@ public class SocketManager {
     private void blockPhone(Context context){
 
         Intent intent = new Intent(context, BlockPhoneService.class);
-        context.startService(intent);
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            context.startForegroundService(intent);
+        }else{
+            context.startService(intent);
+        }
+
+
+
 
         /* Intent intent = new Intent();
         intent.setAction("com.example.pray.OPEN_ACTIVITY");

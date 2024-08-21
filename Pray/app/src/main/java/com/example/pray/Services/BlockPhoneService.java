@@ -29,6 +29,9 @@ public class BlockPhoneService extends Service {
     @Override
     public void onCreate(){
        super.onCreate();
+       createNotificationChannel();
+       startForeground(1, getNotification());
+
 
       /* windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
        overlayView = LayoutInflater.from(this).inflate(R.layout.activity_lock, null);
@@ -51,8 +54,29 @@ public class BlockPhoneService extends Service {
         Log.d("BlockPhoneService", "onStartCommand");
         Intent activityIntent = new Intent(this, Lock.class);
         activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
         startActivity(activityIntent);
         return START_STICKY;
+    }
+
+    private void createNotificationChannel(){
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            NotificationChannel serviceChannel = new NotificationChannel(
+                    "BlockPhoneServiceChannel",
+                    "BlockPhoneService Channel",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(serviceChannel);
+        }
+    }
+
+    private Notification getNotification(){
+        return new NotificationCompat.Builder(this, "BlockPhoneServiceChannel")
+                .setContentTitle("BlockPhoneService")
+                .setContentText("Running...")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .build();
     }
 
     @Override
