@@ -24,6 +24,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.MANAGE_DEVICE_POLICY_LOCK_TASK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.BIND_DEVICE_ADMIN"/>
 
     <application
         android:allowBackup="true"
@@ -34,41 +38,20 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:directBootAware="true"
         android:theme="@style/Theme.Pray"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
-        <activity
-            android:name=".block"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:exported="false"
-            android:label="@string/title_activity_block"
-            android:theme="@style/Theme.Pray.Fullscreen" />
-
-        <service
-            android:name=".Services.BlockPhoneService"
+        <receiver
+            android:name=".BroadcastBoot"
             android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".Services.TurnOffScreen"
-            android:exported="false" />
-        <service
-            android:name=".Services.WebSocketService"
-            android:enabled="true"
-            android:exported="true"
-            android:foregroundServiceType="dataSync" /> <!-- <service android:name=".Services.PrayLockService"/> -->
-        <activity
-            android:name=".Lock"
-            android:exported="false" />
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
+            android:exported="false">
+            <intent-filter android:priority="100000">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
-        </activity>
+        </receiver>
 
         <receiver
             android:name=".MyAdmin"
@@ -82,14 +65,43 @@
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
         </receiver>
-        <receiver
-            android:name=".MyBroadcastReceiver"
+
+        <service
+            android:name=".Services.BlockPhone"
             android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".Services.TurnOffService"
+            android:enabled="true"
+            android:exported="true" />
+
+        <service
+            android:name=".Services.BlockPhoneService"
+            android:enabled="true"
+            android:exported="true"
+            android:foregroundServiceType="dataSync" />
+        <service
+            android:name=".Services.TurnOffScreen"
+            android:exported="false" />
+        <service
+            android:name=".Services.WebSocketService"
+            android:enabled="true"
+            android:exported="true"
+            android:foregroundServiceType="dataSync" />
+
+        <activity
+            android:name=".Lock"
+            android:exported="false" />
+        <activity
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.example.pray.OPEN_ACTIVITY" />
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </receiver>
+        </activity>
+
     </application>
 
 </manifest>

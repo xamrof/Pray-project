@@ -28,8 +28,7 @@ public class WebSocketService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId){
 
         socketManager = new SocketManager(this);
-        new Thread(socketManager::run).start();
-        //IF DETECT THAT THE DEVICE IS BLOCKED
+        socketManager.run();
         return START_STICKY;
     }
 
