@@ -1,19 +1,25 @@
 package com.example.pray;
 
-import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.admin.FactoryResetProtectionPolicy;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -21,32 +27,38 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
-import android.content.Intent;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
-import com.example.pray.R;
 import com.example.pray.Workers.TurnOffScreenWorker;
 
 import java.util.concurrent.TimeUnit;
 
 import io.socket.client.Socket;
 
-public class Lock extends AppCompatActivity {
+public class Lock extends AppCompatActivity implements SensorEventListener {
     private Socket socket;
     private DevicePolicyManager devicePolicyManager;
     private ComponentName adminComponent;
     private Context context;
-    private Boolean isBlockActive = false; //This variable is used to check if the device is blocked and use in DB
+    private Boolean isBlockActive = false;//This variable is used to check if the device is blocked and use in DB
+    private PowerManager powerManager;
+    private PowerManager.WakeLock wakeLock;
+    private SensorManager sensorManager;
+    private Sensor mProximitySensor;
+    private boolean isScreenOn = true;
+    private WindowManager windowManager;
+    private View overlayView;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         devicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         adminComponent = new ComponentName(this, MyAdmin.class);
+        context = this;
 
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.password_native_activity);
@@ -63,15 +75,6 @@ public class Lock extends AppCompatActivity {
         final EditText passwordEditText = findViewById(R.id.EditText_Lock_Password);
         final Button unlockButton = findViewById(R.id.Button_Lock_Unlock);
         final ImageView imageLock = findViewById(R.id.imageView_Lock_AccessDenied);
-        DisplayMetrics metrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        if(imm.isAcceptingText()){
-            Log.d("Lock", "Software Keyboard was shown");
-        }else{
-            Log.d("Lock", "Software keyboard was not shown");
-        }
-
         final TextView text = findViewById(R.id.TextView_Lock_AccessDenied);
         final View contentView = findViewById(android.R.id.content);
         contentView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -122,6 +125,9 @@ public class Lock extends AppCompatActivity {
                         Toast.makeText(Lock.this, "Correct Password", Toast.LENGTH_SHORT).show();
                         isBlockActive = false;
                         stopLockTask();
+                        finish();
+                        //uninstallApk();
+                        //SHOWING AN ACTIVITY WILL SAY THAT THE USER IS UNLOCKED
                     }else{
                         Toast.makeText(Lock.this, "Wrong Password", Toast.LENGTH_SHORT).show();
                     }
@@ -146,19 +152,37 @@ public class Lock extends AppCompatActivity {
     @Override
     protected void onResume(){
         super.onResume();
-        OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(TurnOffScreenWorker.class)
-                .setInitialDelay(10, TimeUnit.SECONDS)
-                .build();
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mProximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        sensorManager.registerListener( this, mProximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
+        if(isBlockActive){
+            scheduleWorkRequest();
+        }
 
+    }
+
+    private void scheduleWorkRequest(){
+        OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(TurnOffScreenWorker.class)
+                .setInitialDelay(5, TimeUnit.SECONDS)
+                .addTag("TurnOffScreenWorker")
+                .build();
         WorkManager.getInstance(context).enqueue(workRequest);
-        Log.d("Lock", "onResume");
+    }
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+        sensorManager.unregisterListener(this);
+        WorkManager.getInstance(context).cancelAllWorkByTag("TurnOffScreenWorker");
     }
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if(hasFocus && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP && isBlockActive){
-            startKioskMode();
+            if(!isInLockTaskMode()){
+                startKioskMode();
+            }
         }
     }
 
@@ -174,17 +198,31 @@ public class Lock extends AppCompatActivity {
 
     private void startKioskMode(){
         startLockTask();
-       /* if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
-
+       if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
             devicePolicyManager.setLockTaskPackages(adminComponent, new String[]{getPackageName()});
+            startLockTask();
+        }
+    }
 
-            if(devicePolicyManager.isLockTaskPermitted(getPackageName())){
-                startLockTask();
-          }else {
-                Log.e("Lock", "Permission not granted");
-            }
+    private boolean isInLockTaskMode(){
+        ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M){
+            return activityManager.getLockTaskModeState() != ActivityManager.LOCK_TASK_MODE_NONE;
+        }else{
+            return activityManager.isInLockTaskMode();
+        }
+    }
 
-        } */
+    private void uninstallApk(){
+
+        if(devicePolicyManager.isAdminActive(adminComponent)){
+            devicePolicyManager.clearDeviceOwnerApp(getPackageName());
+            devicePolicyManager.removeActiveAdmin(adminComponent);
+        }
+
+        Intent intent = new Intent(Intent.ACTION_DELETE);
+        intent.setData(Uri.parse("package:"+getPackageName()));
+        startActivity(intent);
     }
 
     @Override
@@ -192,11 +230,27 @@ public class Lock extends AppCompatActivity {
         super.onDestroy();
         if (socket != null) {
             Log.d("SocketIO", "Disconnecting");
+            windowManager.removeView(overlayView);
             socket.disconnect();
+            WorkManager.getInstance(context).cancelAllWorkByTag("TurnOffScreenWorker");
         }
     }
 
-   /* private void lockScreen(){
-        devicePolicyManager.lockNow();
-    }*/
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+        if(sensorEvent.sensor.getType() == Sensor.TYPE_PROXIMITY){
+            if(sensorEvent.values[0] < mProximitySensor.getMaximumRange()){
+                Log.d("Lock", "paso por aqui");
+                isScreenOn = false;
+                WorkManager.getInstance(context).cancelAllWork();
+            }else{
+                isScreenOn = true;
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+
+    }
 }

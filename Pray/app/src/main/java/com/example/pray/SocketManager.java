@@ -10,19 +10,23 @@ import android.util.Log;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
+import com.example.pray.Services.BlockPhone;
 import com.example.pray.Services.BlockPhoneService;
 import com.example.pray.Services.TurnOffScreen;
 import com.example.pray.Workers.BlockWorker;
+import com.example.pray.Workers.TurnOffScreenWorker;
 
 import io.socket.client.Socket;
 import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
+
 import io.socket.client.IO;
 
 
 public class SocketManager {
 
     private static final String TAG = "SocketWorker";
-    private static final String SERVER_URL = "http://192.168.0.108:3000";
+    private static final String SERVER_URL = "http://192.168.0.109:3000";
     private static final String EVENT_CONNECT = Socket.EVENT_CONNECT;
     private static final String EVENT_CONNECT_ERROR = "connect_error";
     private static final String EVENT_MESSAGE_SERVER = "messageServer";
@@ -51,7 +55,6 @@ public class SocketManager {
                 socket.emit("message", MESSAGE_HI);
             });
 
-
             socket.on(EVENT_CONNECT_ERROR, args -> {
                 Object error = args[0];
                 Log.e("SocketIO", "Connection error: "+error.toString());
@@ -74,20 +77,23 @@ public class SocketManager {
     }
 
     private void startLookScreen(Context context){
-        Intent intent = new Intent(context, TurnOffScreen.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startService(intent);
+        OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(TurnOffScreenWorker.class)
+                .build();
+
+        WorkManager.getInstance(context).enqueue(workRequest);
     }
 
     private void blockPhone(Context context){
 
-        Intent intent = new Intent(context, BlockPhoneService.class);
+        Intent intent = new Intent(context, BlockPhone.class);
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+       context.startService(intent);
+
+       /* if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
             context.startForegroundService(intent);
         }else{
             context.startService(intent);
-        }
+        }*/
 
 
 

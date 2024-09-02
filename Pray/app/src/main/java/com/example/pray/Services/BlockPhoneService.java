@@ -4,13 +4,14 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
-import android.graphics.PixelFormat;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 
@@ -18,44 +19,24 @@ import androidx.core.app.NotificationCompat;
 
 import com.example.pray.Lock;
 import com.example.pray.R;
-import com.example.pray.block;
 
 public class BlockPhoneService extends Service {
 
     private WindowManager windowManager;
     private View overlayView;
+    BroadcastReceiver screenUnlockReceiver;
 
-
-    @Override
+   @Override
     public void onCreate(){
        super.onCreate();
        createNotificationChannel();
        startForeground(1, getNotification());
-
-
-      /* windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-       overlayView = LayoutInflater.from(this).inflate(R.layout.activity_lock, null);
-
-       WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-               WindowManager.LayoutParams.WRAP_CONTENT,
-               WindowManager.LayoutParams.WRAP_CONTENT,
-               WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-               WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-               PixelFormat.TRANSLUCENT);
-
-       params.gravity = Gravity.TOP | Gravity.LEFT;
-       params.x = 0;
-       params.y = 100;
-
-       windowManager.addView(overlayView, params); */
     }
 
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId){
         Log.d("BlockPhoneService", "onStartCommand");
-        Intent activityIntent = new Intent(this, Lock.class);
-        activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-        startActivity(activityIntent);
+        checkScreenStatus();
         return START_STICKY;
     }
 
@@ -64,7 +45,7 @@ public class BlockPhoneService extends Service {
             NotificationChannel serviceChannel = new NotificationChannel(
                     "BlockPhoneServiceChannel",
                     "BlockPhoneService Channel",
-                    NotificationManager.IMPORTANCE_HIGH
+                    NotificationManager.IMPORTANCE_LOW
             );
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(serviceChannel);
@@ -79,6 +60,34 @@ public class BlockPhoneService extends Service {
                 .build();
     }
 
+    private void checkScreenStatus(){
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        boolean isScreenOn = powerManager.isInteractive();
+        final IntentFilter filter = new IntentFilter(Intent.ACTION_USER_PRESENT);
+
+        if(isScreenOn){
+            startActivity();
+        }else{
+            screenUnlockReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    startActivity();
+
+                    unregisterReceiver(screenUnlockReceiver);
+
+                }
+            };
+            registerReceiver(screenUnlockReceiver, filter);
+        }
+
+    }
+
+    private void startActivity(){
+        Intent activityIntent = new Intent(this, Lock.class);
+        activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(activityIntent);
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
        return null;
@@ -89,8 +98,9 @@ public class BlockPhoneService extends Service {
     public void onDestroy(){
         super.onDestroy();
         Log.d("BlockPhoneService", "onDestroy");
-        if(overlayView != null){
-            windowManager.removeView(overlayView);
+        if(overlayView != null && screenUnlockReceiver != null){
+           windowManager.removeView(overlayView);
+           //unregisterReceiver(screenUnlockReceiver);
         }
 
     }

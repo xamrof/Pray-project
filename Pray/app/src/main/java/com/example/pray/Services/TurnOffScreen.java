@@ -10,6 +10,8 @@ import com.example.pray.MyAdmin;
 import com.example.pray.SocketManager;
 
 import java.net.Socket;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class TurnOffScreen extends IntentService {
@@ -28,5 +30,6 @@ public class TurnOffScreen extends IntentService {
         policeManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         policeManager.lockNow();
     }
+
 
 }

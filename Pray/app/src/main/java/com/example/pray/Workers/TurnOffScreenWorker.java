@@ -17,23 +17,24 @@ public class TurnOffScreenWorker  extends Worker {
     private DevicePolicyManager policeManager;
     private ComponentName adminComponent;
 
-
-
     public TurnOffScreenWorker(Context context, WorkerParameters params) {
         super(context, params);
         policeManager = (DevicePolicyManager) context.getSystemService(Context.DEVICE_POLICY_SERVICE);
         adminComponent = new ComponentName(context, MyAdmin.class);
-        Log.e("TurnOffWork", "HERE WORKER");
+        Log.d("TurnOffWork", "HERE WORKER");
     }
 
     @NonNull
     @Override
     public Result doWork() {
-
-        Log.d("TurnOffWork", "worker executed");
-        turnOffScreen();
-
-        return Result.success();
+        try{
+            Log.d("TurnOffWork", "worker executed");
+            turnOffScreen();
+            return Result.success();
+        }catch(Exception e){
+            Log.e("TurnOffWork", "Error: "+e.getMessage());
+            return Result.failure();
+        }
     }
 
     private void turnOffScreen(){

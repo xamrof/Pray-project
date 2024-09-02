@@ -8,7 +8,6 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.example.pray.Lock;
-import com.example.pray.block;
 
 public class BlockWorker extends Worker {
 
@@ -20,7 +19,7 @@ public class BlockWorker extends Worker {
     @Override
     public Result doWork() {
         Context context = getApplicationContext();
-        Intent intent = new Intent(context, block.class);
+        Intent intent = new Intent(context, Lock.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
         return Result.success();
