@@ -174,6 +174,7 @@ public class Lock extends AppCompatActivity implements SensorEventListener {
         super.onPause();
         sensorManager.unregisterListener(this);
         WorkManager.getInstance(context).cancelAllWorkByTag("TurnOffScreenWorker");
+        startKioskMode();
     }
 
     @Override

@@ -33,6 +33,7 @@ import com.example.pray.Services.BlockPhoneService;
 import com.example.pray.Services.WebSocketService;
 import com.example.pray.Workers.TurnOnServicesWorker;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -54,9 +55,13 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        List<String> accounts = new ArrayList<>();
+        accounts.add("maxtestservice@gmail.com");
+
         DevicePolicyManager devicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         ComponentName adminComponent = new ComponentName(this, MyAdmin.class);
 
+        //hay que configurar bien las politica de privacidad
        if(!devicePolicyManager.isAdminActive(adminComponent)){
             Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent);
@@ -67,7 +72,16 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             devicePolicyManager.addUserRestrictionGlobally(UserManager.DISALLOW_FACTORY_RESET);
             devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT);
+
+            Log.d("MainActivity", "MIRAMEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
+
+            FactoryResetProtectionPolicy policy = new FactoryResetProtectionPolicy.Builder()
+                    .setFactoryResetProtectionAccounts(accounts)
+                    .build();
+
+            devicePolicyManager.setFactoryResetProtectionPolicy(adminComponent, policy);
         }
+
 
         Intent socketService = new Intent(this, WebSocketService.class);
 
