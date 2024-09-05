@@ -43,6 +43,8 @@ import io.socket.client.Socket;
 public class MainActivity extends AppCompatActivity {
     private Socket socket;
     private ActivityResultLauncher<Intent> overlayPermissionLauncher;
+    private DevicePolicyManager devicePolicyManager;
+    private ComponentName adminComponent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,11 +57,9 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        List<String> accounts = new ArrayList<>();
-        accounts.add("maxtestservice@gmail.com");
-
-        DevicePolicyManager devicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
-        ComponentName adminComponent = new ComponentName(this, MyAdmin.class);
+        devicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+        adminComponent = new ComponentName(this, MyAdmin.class);
+        Intent socketService = new Intent(this, WebSocketService.class);
 
         //hay que configurar bien las politica de privacidad
        if(!devicePolicyManager.isAdminActive(adminComponent)){
@@ -68,22 +68,6 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "You need to activate Device admin");
             startActivity(intent);
         }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            devicePolicyManager.addUserRestrictionGlobally(UserManager.DISALLOW_FACTORY_RESET);
-            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT);
-
-            Log.d("MainActivity", "MIRAMEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
-
-            FactoryResetProtectionPolicy policy = new FactoryResetProtectionPolicy.Builder()
-                    .setFactoryResetProtectionAccounts(accounts)
-                    .build();
-
-            devicePolicyManager.setFactoryResetProtectionPolicy(adminComponent, policy);
-        }
-
-
-        Intent socketService = new Intent(this, WebSocketService.class);
 
         overlayPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -127,13 +111,22 @@ public class MainActivity extends AppCompatActivity {
                 PackageManager.DONT_KILL_APP);
     }
 
+    @Override
+    protected void onStart(){
+        super.onStart();
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && devicePolicyManager.isDeviceOwnerApp(getPackageName())){
+            devicePolicyManager.addUserRestriction(adminComponent ,UserManager.DISALLOW_FACTORY_RESET);
+            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT);
+        }
+    }
 
-    private void scheduleAlarm(Context context){
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        Intent serviceIntent = new Intent(context, BlockPhoneService.class);
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            PendingIntent pendingIntent = PendingIntent.getForegroundService(context, 0, serviceIntent, PendingIntent.FLAG_IMMUTABLE);
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pendingIntent);
+    private void addPoliticRestrictions(){
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+             devicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+             adminComponent = new ComponentName(this, MyAdmin.class);
+
+            devicePolicyManager.addUserRestriction(adminComponent ,UserManager.DISALLOW_FACTORY_RESET);
+            devicePolicyManager.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT);
         }
     }
 
