@@ -26,7 +26,7 @@ import io.socket.client.IO;
 public class SocketManager {
 
     private static final String TAG = "SocketWorker";
-    private static final String SERVER_URL = "http://192.168.0.109:3000";
+    private static final String SERVER_URL = "http://192.168.100.91:3000";
     private static final String EVENT_CONNECT = Socket.EVENT_CONNECT;
     private static final String EVENT_CONNECT_ERROR = "connect_error";
     private static final String EVENT_MESSAGE_SERVER = "messageServer";
